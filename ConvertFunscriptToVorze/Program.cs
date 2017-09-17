@@ -1,21 +1,15 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Net;
-using System.Text;
-using System.Runtime.CompilerServices;
-using System.Threading.Tasks;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 
 namespace ConvertFunscriptToVorze
 {
-    class Program
+    internal class Program
     {
         private static float multi = 2.4f; //Multiplicator for final calculation
 
-        static void Main(string[] args)
+        private static void Main(string[] args)
         {
             int files = 0;
             int error = 0;
@@ -40,7 +34,7 @@ namespace ConvertFunscriptToVorze
                 }
                 Console.WriteLine("You can also convert a single file by using 2 arguments, like \"convert.exe script.funscript script.csv\".");
             }
-            else if(args.Length == 2)
+            else if (args.Length == 2)
             {
                 string input = args[0];
                 string output = args[1];
@@ -74,13 +68,12 @@ namespace ConvertFunscriptToVorze
                 }
                 files = 1;
             }
-            
 
             if (files == 0)
             {
                 Console.WriteLine("Could not find any compatible file. Please make sure, that your scripts are ending with \".funscript\". Then try again");
             }
-            else if(error == 0)
+            else if (error == 0)
             {
                 Console.WriteLine("Everything is finished :)");
                 Console.WriteLine("Please note, that this process is incredibly inaccurate.");
@@ -95,84 +88,67 @@ namespace ConvertFunscriptToVorze
             Console.ReadKey();
         }
 
-        static void Convert(string inputFile, string outputFile)
+        private static void Convert(string inputFile, string outputFile)
         {
             string inputScript = File.ReadAllText(inputFile);
-            StreamWriter outputStream = File.CreateText(outputFile);  
+            StreamWriter outputStream = File.CreateText(outputFile);
 
-            dynamic jsonObj = JsonConvert.DeserializeObject(inputScript);
-            foreach (var childToken in jsonObj)
+            Actions actions = JsonConvert.DeserializeObject<Actions>(inputScript);
+            
+            Console.WriteLine("Starting conversion of " + Path.GetFileName(inputFile));
+
+            int i = 0;
+            foreach (var action in actions.actions)
             {
-                if (childToken.Name == "actions")
+                if (i == actions.actions.Count - 1)
                 {
-                    Console.WriteLine("Starting conversion of " + Path.GetFileName(inputFile));
-
-                    foreach (var actionParent in childToken)
-                    {
-                        foreach (var action in actionParent)
-                        {
-                            long thisAt = 0;
-                            long thisPos = 0;
-
-                            long nextAt = 0;
-                            long nextPos = 0;
-
-                            if (action.Next == null)
-                            {
-                                //Last Action, Send 0 Command
-                                outputStream.WriteLine(thisAt / 100 + ",0,0");
-                                continue;
-                            }
-                            else
-                            {
-                                foreach (var childAction in action)
-                                {
-                                    if (childAction.Name == "at")
-                                    {
-                                        thisAt = childAction.Value.Value;
-                                    }
-                                    if (childAction.Name == "pos")
-                                    {
-                                        thisPos = childAction.Value.Value;
-                                    }
-                                }
-                                foreach (var childAction in action.Next)
-                                {
-                                    if (childAction.Name == "at")
-                                    {
-                                        nextAt = childAction.Value.Value;
-                                    }
-                                    if (childAction.Name == "pos")
-                                    {
-                                        nextPos = childAction.Value.Value;
-                                    }
-                                }
-                            }
-
-                            long posDif = 0;
-                            int direction = 0;
-
-                            if (thisPos - nextPos < 0)
-                            {
-                                posDif = -(thisPos - nextPos);
-                                direction = 1;
-                            }
-                            else
-                            {
-                                posDif = thisPos - nextPos;
-                                direction = 0;
-                            }
-
-                            //Really bad calculation done at 5 in the morning
-                            double force = Math.Round((((posDif * 10) / ((nextAt - thisAt) / 10)) * multi));
-
-                            outputStream.WriteLine(thisAt / 100 + "," + direction.ToString() + "," + force);
-                        }
-                    }
+                    outputStream.WriteLine(action.at + ",0,0");
+                    break;
                 }
+                
+                var thisAt = action.at;
+                var thisPos = action.pos;
+
+                var nextAt = actions.actions[i + 1].at;
+                var nextPos = actions.actions[i + 1].pos;
+
+                long posDif = 0;
+                int direction = 0;
+
+                if (thisPos - nextPos < 0)
+                {
+                    posDif = -(thisPos - nextPos);
+                    direction = 1;
+                }
+                else
+                {
+                    posDif = thisPos - nextPos;
+                    direction = 0;
+                }
+
+                //Really bad calculation done at 5 in the morning
+                double force = Math.Round((((posDif * 10) / ((nextAt - thisAt) / 10)) * multi));
+                if (force > 100)
+                {
+                    force = 100;
+                }
+                outputStream.WriteLine(thisAt / 100 + "," + direction.ToString() + "," + force);
+
+                i++;
             }
             outputStream.Close();
             Console.WriteLine("Finished conversion of " + Path.GetFileNameWithoutExtension(inputFile));
+        }
+
+        private class Actions
+        {
+            public List<action> actions;
+
+            public class action
+            {
+                public long at;
+                public long pos;
+            }
         }
     }
 }
