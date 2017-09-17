@@ -17,13 +17,82 @@ namespace ConvertFunscriptToVorze
 
         static void Main(string[] args)
         {
-            foreach (var file in Directory.GetFiles(Directory.GetCurrentDirectory()))
+            int files = 0;
+            int error = 0;
+
+            if (args.Length == 0)
             {
-                if (Path.GetExtension(file) == ".funscript")
+                foreach (var file in Directory.GetFiles(Directory.GetCurrentDirectory()))
                 {
-                    Convert(file, Path.GetFullPath(file) + ".csv");
+                    files++;
+                    if (Path.GetExtension(file) == ".funscript")
+                    {
+                        try
+                        {
+                            Convert(file, Path.GetFullPath(file) + ".csv");
+                        }
+                        catch (Exception e)
+                        {
+                            Console.WriteLine(e);
+                            error++;
+                        }
+                    }
                 }
+                Console.WriteLine("You can also convert a single file by using 2 arguments, like \"convert.exe script.funscript script.csv\".");
             }
+            else if(args.Length == 2)
+            {
+                string input = args[0];
+                string output = args[1];
+
+                if (Path.GetDirectoryName(input) == "")
+                {
+                    input = Path.Combine(Directory.GetCurrentDirectory() + "\\" + input);
+                }
+
+                if (Path.GetDirectoryName(output) == "")
+                {
+                    output = Path.Combine(Directory.GetCurrentDirectory() + "\\" + output);
+                }
+
+                if (File.Exists(input) && File.Exists(output))
+                {
+                    try
+                    {
+                        Convert(input, output);
+                    }
+                    catch (Exception e)
+                    {
+                        Console.WriteLine(e);
+                        error++;
+                    }
+                }
+                else
+                {
+                    error++;
+                    Console.WriteLine("Error: One or more files could not be found");
+                }
+                files = 1;
+            }
+            
+
+            if (files == 0)
+            {
+                Console.WriteLine("Could not find any compatible file. Please make sure, that your scripts are ending with \".funscript\". Then try again");
+            }
+            else if(error == 0)
+            {
+                Console.WriteLine("Everything is finished :)");
+                Console.WriteLine("Please note, that this process is incredibly inaccurate.");
+            }
+            else
+            {
+                Console.WriteLine("Welp, it appears something went wrong. You can inform me of any bugs, i'll try to patch them asap :)");
+            }
+
+            Console.WriteLine("Get more info at https://github.com/Damitrix/FunscriptToVorzeConverter");
+            Console.WriteLine("Press any key to Close this.");
+            Console.ReadKey();
         }
 
         static void Convert(string inputFile, string outputFile)
@@ -36,7 +105,7 @@ namespace ConvertFunscriptToVorze
             {
                 if (childToken.Name == "actions")
                 {
-                    Console.WriteLine("Starting conversion");
+                    Console.WriteLine("Starting conversion of " + Path.GetFileName(inputFile));
 
                     foreach (var actionParent in childToken)
                     {
@@ -103,6 +172,7 @@ namespace ConvertFunscriptToVorze
                 }
             }
             outputStream.Close();
+            Console.WriteLine("Finished conversion of " + Path.GetFileNameWithoutExtension(inputFile));
         }
     }
 }
