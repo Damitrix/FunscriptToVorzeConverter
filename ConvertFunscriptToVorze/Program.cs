@@ -13,19 +13,31 @@ namespace ConvertFunscriptToVorze
 {
     class Program
     {
-        private static float multi = 2.4f;
+        private static float multi = 2.4f; //Multiplicator for final calculation
 
         static void Main(string[] args)
         {
-            string inputScript = File.ReadAllText(Directory.GetCurrentDirectory() + "/Script.funscript");
+            foreach (var file in Directory.GetFiles(Directory.GetCurrentDirectory()))
+            {
+                if (Path.GetExtension(file) == ".funscript")
+                {
+                    Convert(file, Path.GetFullPath(file) + ".csv");
+                }
+            }
+        }
 
-            StreamWriter outputScript = File.CreateText(Directory.GetCurrentDirectory() + "/output.csv");
+        static void Convert(string inputFile, string outputFile)
+        {
+            string inputScript = File.ReadAllText(inputFile);
+            StreamWriter outputStream = File.CreateText(outputFile);  
 
             dynamic jsonObj = JsonConvert.DeserializeObject(inputScript);
             foreach (var childToken in jsonObj)
             {
                 if (childToken.Name == "actions")
                 {
+                    Console.WriteLine("Starting conversion");
+
                     foreach (var actionParent in childToken)
                     {
                         foreach (var action in actionParent)
@@ -36,19 +48,25 @@ namespace ConvertFunscriptToVorze
                             long nextAt = 0;
                             long nextPos = 0;
 
-                            foreach (var childAction in action)
+                            if (action.Next == null)
                             {
-                                if (childAction.Name == "at")
-                                {
-                                    thisAt = childAction.Value.Value;
-                                }
-                                if (childAction.Name == "pos")
-                                {
-                                    thisPos = childAction.Value.Value;
-                                }
+                                //Last Action, Send 0 Command
+                                outputStream.WriteLine(thisAt / 100 + ",0,0");
+                                continue;
                             }
-                            try
+                            else
                             {
+                                foreach (var childAction in action)
+                                {
+                                    if (childAction.Name == "at")
+                                    {
+                                        thisAt = childAction.Value.Value;
+                                    }
+                                    if (childAction.Name == "pos")
+                                    {
+                                        thisPos = childAction.Value.Value;
+                                    }
+                                }
                                 foreach (var childAction in action.Next)
                                 {
                                     if (childAction.Name == "at")
@@ -61,12 +79,7 @@ namespace ConvertFunscriptToVorze
                                     }
                                 }
                             }
-                            catch (Exception e)
-                            {
-                                Console.WriteLine(e);
-                                //throw;
-                            }
-                            
+
                             long posDif = 0;
                             int direction = 0;
 
@@ -81,17 +94,15 @@ namespace ConvertFunscriptToVorze
                                 direction = 0;
                             }
 
+                            //Really bad calculation done at 5 in the morning
                             double force = Math.Round((((posDif * 10) / ((nextAt - thisAt) / 10)) * multi));
 
-                            outputScript.WriteLine(thisAt / 100 + "," + direction.ToString() + "," + force);
+                            outputStream.WriteLine(thisAt / 100 + "," + direction.ToString() + "," + force);
                         }
                     }
                 }
             }
-
-            outputScript.Close();
-
-            //pos unterschied * 10 / zeit
+            outputStream.Close();
         }
     }
 }
