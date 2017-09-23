@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.26430.16
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConvertFunscriptToVorze", "ConvertFunscriptToVorze\ConvertFunscriptToVorze.csproj", "{654C3724-25F3-4EEC-9668-71FCA9B241D5}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Funscript2Vorze", "ConvertFunscriptToVorze\Funscript2Vorze.csproj", "{654C3724-25F3-4EEC-9668-71FCA9B241D5}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
